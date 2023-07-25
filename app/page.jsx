@@ -109,10 +109,6 @@ export default function Home() {
     }
   }, [isLoadingComplete]);
 
-  if (stage === "intro") {
-    return <Introduction onExplore={() => setStage("loading")} />;
-  }
-
   return (
     <div className="w-full h-full overflow-hidden">
       <Canvas style={{ background: "black" }}>
@@ -124,6 +120,13 @@ export default function Home() {
         </Suspense>
         <OrbitControls />
       </Canvas>
+
+      {stage === "intro" && (
+        <div className="absolute inset-0 flex justify-center items-center">
+          <Introduction onExplore={() => setStage("loading")} />
+        </div>
+      )}
+
       {stage === "loading" && (
         <div className="absolute inset-0 bg-black flex justify-center items-center">
           <Loading onComplete={() => setLoadingComplete(true)} />
