@@ -2,10 +2,22 @@
 
 import React, { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas, useLoader, useFrame } from "@react-three/fiber";
-import { Sphere, PerspectiveCamera, OrbitControls } from "@react-three/drei";
-import { TextureLoader, BackSide } from "three";
-import { Line } from "@react-three/drei";
-import { CatmullRomCurve3, Vector3 } from "three";
+import {
+  Sphere,
+  PerspectiveCamera,
+  OrbitControls,
+  Line,
+  Text,
+} from "@react-three/drei";
+import {
+  TextureLoader,
+  FontLoader,
+  BackSide,
+  CatmullRomCurve3,
+  Vector3,
+} from "three";
+
+import * as THREE from "three";
 
 function Earth() {
   const groupRef = useRef();
@@ -18,52 +30,22 @@ function Earth() {
 
   return (
     <group ref={groupRef}>
-      <Sphere args={[10, 32, 32]} position={[0, 0, 0]}>
+      <Sphere args={[50, 32, 32]} position={[0, 0, 0]}>
         <meshPhongMaterial attach="material" map={earthTexture} />
       </Sphere>
-      <Sphere args={[10.02, 32, 32]} position={[0, 0, 0]}>
+      <Sphere args={[50.02, 32, 32]} position={[0, 0, 0]}>
         <meshPhongMaterial
           attach="material"
           map={cloudTexture}
           alphaMap={cloudTexture}
           transparent
-          opacity={0.8}
+          opacity={0.9}
         />
       </Sphere>
     </group>
   );
 }
 
-function Comet() {
-  const cometTexture = useLoader(TextureLoader, "/assets/comet.jpeg");
-
-  return (
-    <Sphere args={[1, 32, 32]} position={[0, 0, 50]}>
-      <meshPhongMaterial attach="material" map={cometTexture} />
-    </Sphere>
-  );
-}
-
-function CometTrajectory() {
-  // Describe a curve trajectory
-  const points = [
-    new Vector3(0, 0, 50), // these points should be modified to represent the trajectory you want
-    new Vector3(20, 0, 30),
-    new Vector3(20, 0, 20),
-    new Vector3(0, 0, 0), // earth position
-  ];
-  const curve = new CatmullRomCurve3(points);
-
-  return (
-    <Line
-      points={curve.getPoints(100)}
-      color="white"
-      lineWidth={5}
-      transparent
-      opacity={0.5}
-    />
-  );
-}
 function Stars() {
   const texture = useLoader(TextureLoader, "/assets/starfield.jpeg");
 
@@ -74,18 +56,107 @@ function Stars() {
   );
 }
 
+function Comet({ camera, controls }) {
+  const cometTexture = useLoader(TextureLoader, "/assets/comet.jpeg");
+  // const font = useLoader(FontLoader, "/path/to/myFont.json");
+
+  const [t, setT] = useState(0);
+  const [targetT, setTargetT] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = (e) => {
+      e.preventDefault();
+      setTargetT((prevT) =>
+        Math.min(Math.max(prevT + e.deltaY * 0.00001, 0), 1)
+      );
+    };
+
+    document.addEventListener("wheel", handleScroll, { passive: false });
+
+    return () => {
+      document.removeEventListener("wheel", handleScroll);
+    };
+  }, []);
+
+  const points = [
+    new Vector3(0, 0, 500),
+    new Vector3(60, 0, 400),
+    new Vector3(0, 0, 0),
+  ];
+  const curve = new CatmullRomCurve3(points);
+
+  useFrame(() => {
+    setT((prevT) => THREE.MathUtils.lerp(prevT, targetT, 0.05));
+
+    const position = curve.getPoint(t);
+
+    if (controls.current) {
+      controls.current.target.copy(position);
+
+      let direction = new Vector3()
+        .subVectors(camera.current.position, position)
+        .normalize();
+
+      let cameraDistance = 20;
+      let newCameraPosition = new Vector3().addVectors(
+        position,
+        direction.multiplyScalar(cameraDistance)
+      );
+
+      camera.current.position.lerp(newCameraPosition, 0.05);
+    }
+  });
+
+  const position = curve.getPoint(t);
+
+  return (
+    <>
+      <Sphere args={[1, 32, 32]} position={position}>
+        <meshPhongMaterial attach="material" map={cometTexture} />
+      </Sphere>
+      <Line
+        points={curve.getPoints(100)}
+        color="white"
+        lineWidth={10}
+        transparent
+        opacity={0.5}
+      />
+      <Text position={[0, 0, 480]} fontSize={5} color="white">
+        {"1950"}
+      </Text>
+      <Text
+        position={[75, 0, 400]}
+        fontSize={5}
+        rotation={[0, -Math.PI / 4, 0]}
+        color="white"
+      >
+        {"2000"}
+      </Text>
+      <Text position={[0, 0, 70]} fontSize={5} color="white">
+        {"2050"}
+      </Text>
+    </>
+  );
+}
+
 function ThreeScene() {
+  const cameraRef = useRef();
+  const controlsRef = useRef();
+
   return (
     <Canvas style={{ background: "black" }}>
-      <PerspectiveCamera makeDefault position={[0, 0, 100]} />
+      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 60]} />
       <directionalLight position={[300, 0, 500]} intensity={2} />
       <Suspense fallback={null}>
         <Stars />
         <Earth />
-        <Comet />
-        <CometTrajectory />
+        <Comet camera={cameraRef} controls={controlsRef} />
       </Suspense>
-      <OrbitControls />
+      <OrbitControls
+        ref={controlsRef}
+        args={[cameraRef.current]}
+        enableZoom={false}
+      />
     </Canvas>
   );
 }
@@ -161,7 +232,7 @@ export default function Home() {
     <div className="w-full h-full overflow-hidden">
       <ThreeScene />
 
-      {stage === "intro" && (
+      {/* {stage === "intro" && (
         <div className="absolute inset-0 flex justify-center items-center">
           <Introduction onExplore={() => setStage("loading")} />
         </div>
@@ -171,7 +242,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black flex justify-center items-center">
           <Loading onComplete={() => setLoadingComplete(true)} />
         </div>
-      )}
+      )} */}
     </div>
   );
 }
