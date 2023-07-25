@@ -161,7 +161,7 @@ export default function Home() {
     <div className="w-full h-full overflow-hidden">
       <ThreeScene />
 
-      {/* {stage === "intro" && (
+      {stage === "intro" && (
         <div className="absolute inset-0 flex justify-center items-center">
           <Introduction onExplore={() => setStage("loading")} />
         </div>
@@ -171,7 +171,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black flex justify-center items-center">
           <Loading onComplete={() => setLoadingComplete(true)} />
         </div>
-      )} */}
+      )}
     </div>
   );
 }
