@@ -4,6 +4,8 @@ import React, { useRef, Suspense, useState, useEffect } from "react";
 import { Canvas, useLoader, useFrame } from "@react-three/fiber";
 import { Sphere, PerspectiveCamera, OrbitControls } from "@react-three/drei";
 import { TextureLoader, BackSide } from "three";
+import { Line } from "@react-three/drei";
+import { CatmullRomCurve3, Vector3 } from "three";
 
 function Earth() {
   const groupRef = useRef();
@@ -16,10 +18,10 @@ function Earth() {
 
   return (
     <group ref={groupRef}>
-      <Sphere args={[3, 32, 32]} position={[0, 0, 0]}>
+      <Sphere args={[10, 32, 32]} position={[0, 0, 0]}>
         <meshPhongMaterial attach="material" map={earthTexture} />
       </Sphere>
-      <Sphere args={[3.02, 32, 32]} position={[0, 0, 0]}>
+      <Sphere args={[10.02, 32, 32]} position={[0, 0, 0]}>
         <meshPhongMaterial
           attach="material"
           map={cloudTexture}
@@ -32,6 +34,36 @@ function Earth() {
   );
 }
 
+function Comet() {
+  const cometTexture = useLoader(TextureLoader, "/assets/comet.jpeg");
+
+  return (
+    <Sphere args={[1, 32, 32]} position={[0, 0, 50]}>
+      <meshPhongMaterial attach="material" map={cometTexture} />
+    </Sphere>
+  );
+}
+
+function CometTrajectory() {
+  // Describe a curve trajectory
+  const points = [
+    new Vector3(0, 0, 50), // these points should be modified to represent the trajectory you want
+    new Vector3(20, 0, 30),
+    new Vector3(20, 0, 20),
+    new Vector3(0, 0, 0), // earth position
+  ];
+  const curve = new CatmullRomCurve3(points);
+
+  return (
+    <Line
+      points={curve.getPoints(100)}
+      color="white"
+      lineWidth={5}
+      transparent
+      opacity={0.5}
+    />
+  );
+}
 function Stars() {
   const texture = useLoader(TextureLoader, "/assets/starfield.jpeg");
 
@@ -39,6 +71,22 @@ function Stars() {
     <Sphere args={[1000, 32, 32]} position={[0, 0, 0]}>
       <meshBasicMaterial attach="material" map={texture} side={BackSide} />
     </Sphere>
+  );
+}
+
+function ThreeScene() {
+  return (
+    <Canvas style={{ background: "black" }}>
+      <PerspectiveCamera makeDefault position={[0, 0, 100]} />
+      <directionalLight position={[300, 0, 500]} intensity={2} />
+      <Suspense fallback={null}>
+        <Stars />
+        <Earth />
+        <Comet />
+        <CometTrajectory />
+      </Suspense>
+      <OrbitControls />
+    </Canvas>
   );
 }
 
@@ -65,7 +113,7 @@ function Loading({ onComplete }) {
           return prevProgress + 1;
         } else {
           clearInterval(timer);
-          onComplete();
+          setTimeout(onComplete, 0); // Use setTimeout to postpone state update
           return prevProgress;
         }
       });
@@ -111,17 +159,9 @@ export default function Home() {
 
   return (
     <div className="w-full h-full overflow-hidden">
-      <Canvas style={{ background: "black" }}>
-        <PerspectiveCamera makeDefault position={[0, 0, 30]} />
-        <directionalLight position={[300, 0, 500]} intensity={2} />
-        <Suspense fallback={null}>
-          <Stars />
-          <Earth />
-        </Suspense>
-        <OrbitControls />
-      </Canvas>
+      <ThreeScene />
 
-      {stage === "intro" && (
+      {/* {stage === "intro" && (
         <div className="absolute inset-0 flex justify-center items-center">
           <Introduction onExplore={() => setStage("loading")} />
         </div>
@@ -131,7 +171,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black flex justify-center items-center">
           <Loading onComplete={() => setLoadingComplete(true)} />
         </div>
-      )}
+      )} */}
     </div>
   );
 }
