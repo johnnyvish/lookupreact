@@ -21,7 +21,7 @@ import * as THREE from "three";
 
 function Earth() {
   const groupRef = useRef();
-  const earthTexture = useLoader(TextureLoader, "/assets/earth2.jpeg");
+  const earthTexture = useLoader(TextureLoader, "/assets/earth3.jpeg");
   const cloudTexture = useLoader(TextureLoader, "/assets/earth3-clouds.jpeg");
 
   useFrame(() => {
@@ -33,7 +33,7 @@ function Earth() {
       <Sphere args={[50, 32, 32]} position={[0, 0, 0]}>
         <meshPhongMaterial attach="material" map={earthTexture} />
       </Sphere>
-      <Sphere args={[50.02, 32, 32]} position={[0, 0, 0]}>
+      <Sphere args={[50.5, 32, 32]} position={[0, 0, 0]}>
         <meshPhongMaterial
           attach="material"
           map={cloudTexture}
@@ -242,7 +242,7 @@ export default function Home() {
     <div className="w-full h-full overflow-hidden">
       <ThreeScene />
 
-      {stage === "intro" && (
+      {/* {stage === "intro" && (
         <div className="absolute inset-0 flex justify-center items-center">
           <Introduction onExplore={() => setStage("loading")} />
         </div>
@@ -252,7 +252,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black flex justify-center items-center">
           <Loading onComplete={() => setLoadingComplete(true)} />
         </div>
-      )}
+      )} */}
     </div>
   );
 }
