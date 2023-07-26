@@ -21,7 +21,7 @@ import * as THREE from "three";
 
 function Earth() {
   const groupRef = useRef();
-  const earthTexture = useLoader(TextureLoader, "/assets/earth3.jpeg");
+  const earthTexture = useLoader(TextureLoader, "/assets/earth2.jpeg");
   const cloudTexture = useLoader(TextureLoader, "/assets/earth3-clouds.jpeg");
 
   useFrame(() => {
