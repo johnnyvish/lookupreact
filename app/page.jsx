@@ -121,18 +121,28 @@ function Comet({ camera, controls }) {
         transparent
         opacity={0.5}
       />
-      <Text position={[0, 0, 480]} fontSize={5} color="white">
+      <Text
+        position={[0, 0, 480]}
+        fontSize={5}
+        rotation={[0, 0, 0]}
+        color="white"
+      >
         {"1950"}
       </Text>
       <Text
         position={[75, 0, 400]}
         fontSize={5}
-        rotation={[0, -Math.PI / 4, 0]}
+        rotation={[0, -Math.PI / 3, 0]}
         color="white"
       >
         {"2000"}
       </Text>
-      <Text position={[0, 0, 70]} fontSize={5} color="white">
+      <Text
+        position={[0, 0, 70]}
+        fontSize={5}
+        rotation={[0, 0, 0]}
+        color="white"
+      >
         {"2050"}
       </Text>
     </>
@@ -145,7 +155,7 @@ function ThreeScene() {
 
   return (
     <Canvas style={{ background: "black" }}>
-      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 60]} />
+      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 550]} />
       <directionalLight position={[300, 0, 500]} intensity={2} />
       <Suspense fallback={null}>
         <Stars />
