@@ -1,23 +1,10 @@
 "use client";
 
-import React, { useRef, Suspense, useState, useEffect } from "react";
+import React, { useRef, Suspense, useEffect, useState } from "react";
 import { Canvas, useLoader, useFrame } from "@react-three/fiber";
-import {
-  Sphere,
-  PerspectiveCamera,
-  OrbitControls,
-  Line,
-  Text,
-} from "@react-three/drei";
-import {
-  TextureLoader,
-  FontLoader,
-  BackSide,
-  CatmullRomCurve3,
-  Vector3,
-} from "three";
-
-import * as THREE from "three";
+import { Sphere, PerspectiveCamera, Text } from "@react-three/drei";
+import { TextureLoader, BackSide } from "three";
+import { gsap } from "gsap";
 
 function Earth() {
   const groupRef = useRef();
@@ -56,19 +43,21 @@ function Stars() {
   );
 }
 
-function Comet({ camera, controls }) {
+function Comet({ camera, isInteractive }) {
   const cometTexture = useLoader(TextureLoader, "/assets/comet.jpeg");
-  // const font = useLoader(FontLoader, "/path/to/myFont.json");
-
-  const [t, setT] = useState(0);
-  const [targetT, setTargetT] = useState(0);
+  const zPosition = useRef(500);
+  const meshRef = useRef();
 
   useEffect(() => {
     const handleScroll = (e) => {
+      if (!isInteractive) return;
+
       e.preventDefault();
-      setTargetT((prevT) =>
-        Math.min(Math.max(prevT + e.deltaY * 0.00001, 0), 1)
-      );
+      zPosition.current = Math.max(zPosition.current - e.deltaY * 0.01, 0);
+      const cameraDistance = 10;
+
+      camera.current.position.set(0, 2, zPosition.current + cameraDistance);
+      camera.current.lookAt(0, 0, 0);
     };
 
     document.addEventListener("wheel", handleScroll, { passive: false });
@@ -76,53 +65,25 @@ function Comet({ camera, controls }) {
     return () => {
       document.removeEventListener("wheel", handleScroll);
     };
-  }, []);
-
-  const points = [
-    new Vector3(0, 0, 500),
-    new Vector3(60, 0, 400),
-    new Vector3(0, 0, 0),
-  ];
-  const curve = new CatmullRomCurve3(points);
+  }, [isInteractive]);
 
   useFrame(() => {
-    setT((prevT) => THREE.MathUtils.lerp(prevT, targetT, 0.05));
-
-    const position = curve.getPoint(t);
-
-    if (controls.current) {
-      controls.current.target.copy(position);
-
-      let direction = new Vector3()
-        .subVectors(camera.current.position, position)
-        .normalize();
-
-      let cameraDistance = 20;
-      let newCameraPosition = new Vector3().addVectors(
-        position,
-        direction.multiplyScalar(cameraDistance)
-      );
-
-      camera.current.position.lerp(newCameraPosition, 0.05);
+    if (meshRef.current) {
+      meshRef.current.position.z = zPosition.current;
     }
   });
 
-  const position = curve.getPoint(t);
-
   return (
     <>
-      <Sphere args={[1, 32, 32]} position={position}>
+      <Sphere
+        ref={meshRef}
+        args={[1, 32, 32]}
+        position={[0, 0, zPosition.current]}
+      >
         <meshPhongMaterial attach="material" map={cometTexture} />
       </Sphere>
-      <Line
-        points={curve.getPoints(100)}
-        color="white"
-        lineWidth={10}
-        transparent
-        opacity={0.5}
-      />
       <Text
-        position={[0, 0, 480]}
+        position={[0, 0, 400]}
         fontSize={5}
         rotation={[0, 0, 0]}
         color="white"
@@ -130,15 +91,15 @@ function Comet({ camera, controls }) {
         {"1950"}
       </Text>
       <Text
-        position={[75, 0, 400]}
+        position={[0, 0, 300]}
         fontSize={5}
-        rotation={[0, -Math.PI / 3, 0]}
+        rotation={[0, 0, 0]}
         color="white"
       >
         {"2000"}
       </Text>
       <Text
-        position={[0, 0, 70]}
+        position={[0, 0, 200]}
         fontSize={5}
         rotation={[0, 0, 0]}
         color="white"
@@ -149,110 +110,139 @@ function Comet({ camera, controls }) {
   );
 }
 
-function ThreeScene() {
-  const cameraRef = useRef();
-  const controlsRef = useRef();
-
+function ThreeScene({ isInteractive, cameraRef }) {
   return (
     <Canvas style={{ background: "black" }}>
-      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 550]} />
+      <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 150]} />
       <directionalLight position={[300, 0, 500]} intensity={2} />
       <Suspense fallback={null}>
         <Stars />
         <Earth />
-        <Comet camera={cameraRef} controls={controlsRef} />
+        <Comet camera={cameraRef} isInteractive={isInteractive} />
       </Suspense>
-      <OrbitControls
-        ref={controlsRef}
-        args={[cameraRef.current]}
-        enableZoom={false}
-      />
     </Canvas>
   );
 }
 
-function Introduction({ onExplore }) {
+function TitleComponent({ isExploreClicked }) {
+  useEffect(() => {
+    if (isExploreClicked) {
+      gsap.to(".title", {
+        y: "-140%",
+        duration: 1,
+        scale: 0.6,
+        ease: "power2.out",
+      });
+    }
+  }, [isExploreClicked]);
+
   return (
-    <div className="w-screen h-screen bg-black text-white flex justify-center items-center">
-      <button
-        onClick={onExplore}
-        className="bg-white text-black px-8 py-4 border-none cursor-pointer focus:outline-none text-[3rem] font-semibold rounded-full transition duration-200 ease-in-out hover:bg-gray-200"
-      >
-        Explore
-      </button>
-    </div>
+    <h1 className="title absolute top-[40%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-[8rem] text-shadow-md font-newake">
+      LOOK UP
+    </h1>
   );
 }
 
-function Loading({ onComplete }) {
-  const [loadProgress, setLoadProgress] = useState(0);
-
-  useEffect(() => {
-    let timer = setInterval(() => {
-      setLoadProgress((prevProgress) => {
-        if (prevProgress < 100) {
-          return prevProgress + 1;
-        } else {
-          clearInterval(timer);
-          setTimeout(onComplete, 0); // Use setTimeout to postpone state update
-          return prevProgress;
-        }
-      });
-    }, 40); // Speed of loading bar
-
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-      }
-    };
-  }, [onComplete]);
+function ExploreButton({ onClick }) {
+  const handleClick = () => {
+    gsap.to(".exploreButton", {
+      opacity: 0,
+      duration: 1.5,
+      ease: "power2.out",
+    });
+    onClick();
+  };
 
   return (
-    <div className="absolute top-[45%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white flex flex-col items-center justify-center">
-      <object
-        id="svg-logo"
-        className="h-[30vh] w-auto"
-        data="/assets/yellowdot.svg"
-        type="image/svg+xml"
-      />
-      <div>Loading...</div>
-      <div className="w-48 h-4 border border-white bg-black mt-[-8vh]">
-        {" "}
-        {/* Change the value inside the brackets to adjust the overlap */}
-        <div
-          className={`bg-white h-full`}
-          style={{ width: `${loadProgress}%` }}
-        />
-      </div>
+    <button
+      className="exploreButton absolute top-[53%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white bg-red-500 px-8 py-3 rounded-full shadow-md font-semibold text-[2.5rem] transition duration-200 ease-in-out hover:shadow-xl hover:scale-105"
+      onClick={handleClick}
+    >
+      Explore
+    </button>
+  );
+}
+
+function Logo({ isExploreClicked }) {
+  useEffect(() => {
+    if (isExploreClicked) {
+      gsap.to(".logo", {
+        autoAlpha: 1,
+        duration: 2,
+        ease: "power2.in",
+      });
+    }
+  }, [isExploreClicked]);
+
+  return (
+    <img
+      className="logo absolute top-[2%] left-[2%] transform h-[5rem] invisible"
+      src="/assets/yellowdot.png"
+      alt="Logo"
+    />
+  );
+}
+
+function HamburgerMenu({ isExploreClicked }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (isExploreClicked) {
+      gsap.to(".hamburger", {
+        autoAlpha: 1,
+        duration: 2,
+        ease: "power2.in",
+      });
+    }
+  }, [isExploreClicked]);
+
+  return (
+    <div
+      className="hamburger absolute top-[4%] right-[2%] cursor-pointer text-white text-3xl invisible"
+      onClick={() => setIsOpen(!isOpen)}
+    >
+      {isOpen ? (
+        <span className="block mt-[-0.5rem]">X</span>
+      ) : (
+        <div className="flex flex-col justify-between w-6 h-5">
+          <div className="w-full h-px bg-white"></div>
+          <div className="w-full h-px bg-white"></div>
+          <div className="w-full h-px bg-white"></div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function Home() {
-  const [stage, setStage] = useState("intro");
-  const [isLoadingComplete, setLoadingComplete] = useState(false);
+  const [isExploreClicked, setIsExploreClicked] = useState(false);
+  const cameraRef = useRef();
+
+  const handleExploreClick = () => {
+    setIsExploreClicked(true);
+    document.documentElement.style.overflow = "auto";
+
+    gsap.to(cameraRef.current.position, {
+      z: 510,
+      y: 2,
+      duration: 2,
+      ease: "power2.inOut",
+    });
+  };
 
   useEffect(() => {
-    if (isLoadingComplete) {
-      setStage("scene");
+    if (!isExploreClicked) {
+      document.documentElement.style.overflow = "hidden";
     }
-  }, [isLoadingComplete]);
+  }, [isExploreClicked]);
 
   return (
-    <div className="w-full h-full overflow-hidden">
-      <ThreeScene />
-
-      {/* {stage === "intro" && (
-        <div className="absolute inset-0 flex justify-center items-center">
-          <Introduction onExplore={() => setStage("loading")} />
-        </div>
-      )}
-
-      {stage === "loading" && (
-        <div className="absolute inset-0 bg-black flex justify-center items-center">
-          <Loading onComplete={() => setLoadingComplete(true)} />
-        </div>
-      )} */}
+    <div className="w-full h-full overflow-hidden relative">
+      <ThreeScene isInteractive={isExploreClicked} cameraRef={cameraRef} />
+      <TitleComponent isExploreClicked={isExploreClicked} />
+      <Logo isExploreClicked={isExploreClicked} />
+      <HamburgerMenu isExploreClicked={isExploreClicked} />
+      {!isExploreClicked && <ExploreButton onClick={handleExploreClick} />}
     </div>
   );
 }
